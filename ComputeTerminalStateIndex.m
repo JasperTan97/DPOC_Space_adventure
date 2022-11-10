@@ -28,4 +28,20 @@ function stateIndex = ComputeTerminalStateIndex(stateSpace, map)
     global UPPER LOWER
     global K M N L
 
+break_all = false;
+[m,n] = size(map); 
+for x = 1:m
+    for y = 1:n
+        if map(x,y) == LAB
+            break_all = true;
+            break
+        end
+    end
+    if break_all
+        break
+    end
+end
+
+stateIndex = find(ismember(stateSpace,[x,y,GEMS, UPPER], "rows"));
+
 end
