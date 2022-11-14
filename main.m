@@ -102,8 +102,8 @@ N=size(map,2);
 L=length([SOUTH, NORTH, WEST, EAST, STAY]);
 
 %% Set the following to true as you progress with the files
-terminalStateIndexImplemented = false;
-transitionProbabilitiesImplemented = false;
+terminalStateIndexImplemented = true;
+transitionProbabilitiesImplemented = true;
 stageCostsImplemented = false;
 SolutionImplemented = false; 
 
