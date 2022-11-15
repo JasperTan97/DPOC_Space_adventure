@@ -71,58 +71,45 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
             motionpossible = false;
             staying = false;
             % disp([statecurrent, l])
-            if l == SOUTH % going south, must be possible map wise, obstacle free, not off the map 
-                % and not at lab and gem too. 
-                %lostgems = false;
+
+            if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
+                staying = true;
+            end
+
+            if l == SOUTH 
+                % going south, must be possible map wise, obstacle free, not off the map
                 state0 = statesouth;
-                if northorsouthpossible == "south" && statecurrent(2) > 1
+                if northorsouthpossible == "south" && statecurrent(2) > 1 && ...
+                    map(state0(1), state0(2)) ~= OBSTACLE
                     
-                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                        staying = true;
-                    elseif map(state0(1), state0(2)) ~= OBSTACLE
-                        motionpossible = true;
-                    end
+                    motionpossible = true;
                 end
             end
             if l == NORTH
                 state0 = statenorth;
-                if northorsouthpossible == "north" && statecurrent(2) < N
+                if northorsouthpossible == "north" && statecurrent(2) < N && ...
+                    map(state0(1), state0(2)) ~= OBSTACLE
                     
-                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                        staying = true;
-                    elseif map(state0(1), state0(2)) ~= OBSTACLE
-                        motionpossible = true;
-                    end
+                    motionpossible = true;
                 end
             end
             if l == WEST
                 state0 = stateleft; % west is left
-                if statecurrent(1) > 1
-                
-                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                        staying = true;
-                    elseif map(state0(1), state0(2)) ~= OBSTACLE
-                        motionpossible = true;
-                    end
+                if statecurrent(1) > 1 && map(state0(1), state0(2)) ~= OBSTACLE
+                    motionpossible = true;
                 end
             end
             if l == EAST
                 state0 = stateright; % east is right
-                if statecurrent(1) < M
-                
-                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                        staying = true;
-                    elseif map(state0(1), state0(2)) ~= OBSTACLE
-                        motionpossible = true;
-                    end
+                if statecurrent(1) < M && map(state0(1), state0(2)) ~= OBSTACLE
+                    motionpossible = true;
                 end
             end
             if l == STAY % stay only at terminal state
                 state0 = statecurrent;
-                if map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER
-                    staying = true;
-                end
+                motionpossible = true;
             end
+
             if motionpossible
                 [state1, gotgems1, aliens1] = eventsresolver(state0,map);
                 % Radiation movement to state2_i where i = {1,2,3} ==
@@ -159,71 +146,78 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                     p_k23_b4gems = P_DISTURBED*S/3;
                 end
                 % now do 2
-                gem_checker = [aliens1 aliens2_1 aliens2_2 aliens2_3;
-                    gotgems1 gotgems2_1 gotgems2_2 gotgems2_3];
+                gem_checker = [ aliens1  aliens2_1  aliens2_2  aliens2_3;
+                                gotgems1 gotgems2_1 gotgems2_2 gotgems2_3];
                 for check = 1:4
+                    if check ~= 1
+                        gem_checker(1,check) = gem_checker(1,check) + gem_checker(1,1);
+                    end
                     if gem_checker(2,check) % if gems were gotten after alien attacks
-                        gem_checker(1,check) = 0;
+                        gem_checker(1,check) = 0; % total alien fights that could independently make you lose gems
                     end
                 end
                 % we only need to do this step if the state has gems
                 if state1(3) == GEMS
-                    p_k1_wgems = p_k1_b4gems * P_PROTECTED^gem_checker(1,1);
+                    p_k1_wgems = p_k1_b4gems * P_PROTECTED^gem_checker(1,1);    % the number of aliens
                     p_k1_wogems = p_k1_b4gems - p_k1_wgems;
                 else
-                    p_k1_wogems = p_k1_b4gems;
+                    % If you don't have gems before you won't have gems after
+                    p_k1_wogems = p_k1_b4gems; 
                     p_k1_wgems = 0;
                 end
+
+                % The chance of keeping our gems after being disturbed is the prob of defending
+                % from aliens in the first stage (k1) and then again after being displaced.
                 if state2_1(3) == GEMS
-                    p_k21_wgems = p_k21_b4gems * P_PROTECTED^gem_checker(1,2);
+                    p_k21_wgems = p_k21_b4gems * P_PROTECTED^(gem_checker(1,2));
                     p_k21_wogems = p_k21_b4gems - p_k21_wgems;
                 else
                     p_k21_wogems = p_k21_b4gems;
                     p_k21_wgems = 0;
                 end
                 if state2_2(3) == GEMS
-                    p_k22_wgems = p_k22_b4gems * P_PROTECTED^gem_checker(1,3);
+                    p_k22_wgems = p_k22_b4gems * P_PROTECTED^(gem_checker(1,3));
                     p_k22_wogems = p_k22_b4gems - p_k22_wgems;
                 else
                     p_k22_wogems = p_k22_b4gems;
                     p_k22_wgems = 0;
                 end
                 if state2_3(3) == GEMS
-                    p_k23_wgems = p_k23_b4gems * P_PROTECTED^gem_checker(1,4);
+                    p_k23_wgems = p_k23_b4gems * P_PROTECTED^(gem_checker(1,4));
                     p_k23_wogems = p_k23_b4gems - p_k23_wgems;
                 else
                     p_k23_wogems = p_k23_b4gems;
                     p_k23_wgems = 0;
                 end
+
                 % find indexes in statespace: worst case N*M*4 searches each
-                k1_wgems = find(ismember(stateSpace,[state1(1),state1(2),GEMS, state1(4)], "rows"));
-                k1_wogems = find(ismember(stateSpace,[state1(1),state1(2),EMPTY, state1(4)], "rows"));
-                k21_wgems = find(ismember(stateSpace,[state2_1(1),state2_1(2),GEMS, state2_1(4)], "rows"));
-                k21_wogems = find(ismember(stateSpace,[state2_1(1),state2_1(2),EMPTY, state2_1(4)], "rows"));
-                k22_wgems = find(ismember(stateSpace,[state2_2(1),state2_2(2),GEMS, state2_2(4)], "rows"));
-                k22_wogems = find(ismember(stateSpace,[state2_2(1),state2_2(2),EMPTY, state2_2(4)], "rows"));
-                k23_wgems = find(ismember(stateSpace,[state2_3(1),state2_3(2),GEMS, state2_3(4)], "rows"));
-                k23_wogems = find(ismember(stateSpace,[state2_3(1),state2_3(2),EMPTY, state2_3(4)], "rows"));
+                % TODO make this faster by not searching, since we already know where we are (kinda)
+                k1_wgems = ismember(stateSpace,[state1(1),state1(2),GEMS, state1(4)], "rows");
+                k1_wogems = ismember(stateSpace,[state1(1),state1(2),EMPTY, state1(4)], "rows");
+                k21_wgems = ismember(stateSpace,[state2_1(1),state2_1(2),GEMS, state2_1(4)], "rows");
+                k21_wogems = ismember(stateSpace,[state2_1(1),state2_1(2),EMPTY, state2_1(4)], "rows");
+                k22_wgems = ismember(stateSpace,[state2_2(1),state2_2(2),GEMS, state2_2(4)], "rows");
+                k22_wogems = ismember(stateSpace,[state2_2(1),state2_2(2),EMPTY, state2_2(4)], "rows");
+                k23_wgems = ismember(stateSpace,[state2_3(1),state2_3(2),GEMS, state2_3(4)], "rows");
+                k23_wogems = ismember(stateSpace,[state2_3(1),state2_3(2),EMPTY, state2_3(4)], "rows");
 
                 % update transition probabilities
-                P(k, k1_wgems, l) = p_k1_wgems;
-                P(k, k1_wogems, l) = p_k1_wogems;
-                P(k, k21_wgems, l) = p_k21_wgems;
-                P(k, k21_wogems, l) = p_k21_wogems;
-                P(k, k22_wgems, l) = p_k22_wgems;
-                P(k, k22_wogems, l) = p_k22_wogems;
-                P(k, k23_wgems, l) = p_k23_wgems;
-                P(k, k23_wogems, l) = p_k23_wogems;
-
-                %disp([l, ", ", statecurrent, ", ", state1, ", ", state2_1, ", ", state2_2, ", ", state2_3])
+                P(k, k1_wgems, l) = P(k, k1_wgems, l) + p_k1_wgems;
+                P(k, k1_wogems, l) = P(k, k1_wogems, l) + p_k1_wogems;
+                P(k, k21_wgems, l) = P(k, k21_wgems, l) + p_k21_wgems;
+                P(k, k21_wogems, l) = P(k, k21_wogems, l) + p_k21_wogems;
+                P(k, k22_wgems, l) = P(k, k22_wgems, l) + p_k22_wgems;
+                P(k, k22_wogems, l) = P(k, k22_wogems, l) + p_k22_wogems;
+                P(k, k23_wgems, l) = P(k, k23_wgems, l) + p_k23_wgems;
+                P(k, k23_wogems, l) = P(k, k23_wogems, l) + p_k23_wogems;
             end
         end
     end
 end
 
 function [state2_1, state2_2, state2_3,...
-                        gotgems2_1, gotgems2_2, gotgems2_3,...
-                        aliens2_1, aliens2_2, aliens2_3] = after_radiation(statex, map, base_state)
+          gotgems2_1, gotgems2_2, gotgems2_3,...
+          aliens2_1, aliens2_2, aliens2_3] = after_radiation(statex, map, base_state)
     m = statex(1);
     n = statex(2);
     phi = statex(3);
