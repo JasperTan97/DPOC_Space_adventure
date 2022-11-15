@@ -47,17 +47,21 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
         end
     end
     base_state = [base_x, base_y, EMPTY, UPPER];
+
+    % iterate through all states to get transition probs for each
     for k = 1:K
         statecurrent = stateSpace(k,:);
         m = statecurrent(1);
         n = statecurrent(2);
         phi = statecurrent(3);
         psi = statecurrent(4);
+        
         % just walking either left, right or north/south
         stateleft = [m-1,n,phi,psi];
         stateright = [m+1,n,phi,psi];
         statesouth = [m,n-1,phi,psi];
         statenorth = [m,n+1,phi,psi];
+        
         % now, depending on terrain, is north or south possible
         northorsouthpossible = northorsouth(m,n,psi);
 
@@ -71,38 +75,44 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                 % and not at lab and gem too. 
                 %lostgems = false;
                 state0 = statesouth;
-                if northorsouthpossible == "south" && ...
-                    statecurrent(2) > 1 && ...
-                    ~(map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                    if map(state0(1), state0(2)) ~= OBSTACLE
+                if northorsouthpossible == "south" && statecurrent(2) > 1
+                    
+                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
+                        staying = true;
+                    elseif map(state0(1), state0(2)) ~= OBSTACLE
                         motionpossible = true;
                     end
                 end
             end
             if l == NORTH
                 state0 = statenorth;
-                if northorsouthpossible == "north" && ...
-                    statecurrent(2) < N && ...
-                    ~(map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                    if map(state0(1), state0(2)) ~= OBSTACLE
+                if northorsouthpossible == "north" && statecurrent(2) < N
+                    
+                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
+                        staying = true;
+                    elseif map(state0(1), state0(2)) ~= OBSTACLE
                         motionpossible = true;
                     end
                 end
             end
             if l == WEST
                 state0 = stateleft; % west is left
-                if statecurrent(1) > 1 && ...
-                   ~(map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                    if map(state0(1), state0(2)) ~= OBSTACLE
+                if statecurrent(1) > 1
+                
+                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
+                        staying = true;
+                    elseif map(state0(1), state0(2)) ~= OBSTACLE
                         motionpossible = true;
                     end
                 end
             end
             if l == EAST
                 state0 = stateright; % east is right
-                if statecurrent(1) < M && ...
-                   ~(map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
-                    if map(state0(1), state0(2)) ~= OBSTACLE
+                if statecurrent(1) < M
+                
+                    if (map(statecurrent(1), statecurrent(2)) == LAB && statecurrent(3) == GEMS && statecurrent(4) == UPPER)
+                        staying = true;
+                    elseif map(state0(1), state0(2)) ~= OBSTACLE
                         motionpossible = true;
                     end
                 end
@@ -121,11 +131,7 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                 [state2_1, state2_2, state2_3,...
                     gotgems2_1, gotgems2_2, gotgems2_3,...
                     aliens2_1, aliens2_2, aliens2_3] = after_radiation(state1, map, base_state);
-            elseif staying
-                state1 = state0;
-                [state2_1, state2_2, state2_3,...
-                    gotgems2_1, gotgems2_2, gotgems2_3,...
-                    aliens2_1, aliens2_2, aliens2_3] = after_radiation(state1, map, base_state);
+            
             end
     % for calculation of probabilities:
     % 1) get position states (x,y,psi) by using p_disturbed/3 or with shielding
@@ -136,18 +142,21 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
     % exponent when using p_protected
     % in summary, we will have p_ij, where i is current_state aka state_k
     % and j can take either state1 or state 2_{1,2,3}
-            if motionpossible || staying
+            if staying
+                P(k,k,l) = 1;
+        
+            elseif motionpossible
                 if state1(4) == UPPER
                     % do 1)
                     p_k1_b4gems = 1 - P_DISTURBED;
-                    p_k21_b4gems = P_DISTURBED;
-                    p_k22_b4gems = P_DISTURBED;
-                    p_k23_b4gems = P_DISTURBED;
+                    p_k21_b4gems = P_DISTURBED/3;
+                    p_k22_b4gems = P_DISTURBED/3;
+                    p_k23_b4gems = P_DISTURBED/3;
                 else
                     p_k1_b4gems = 1 - P_DISTURBED*S;
-                    p_k21_b4gems = P_DISTURBED*S;
-                    p_k22_b4gems = P_DISTURBED*S;
-                    p_k23_b4gems = P_DISTURBED*S;
+                    p_k21_b4gems = P_DISTURBED*S/3;
+                    p_k22_b4gems = P_DISTURBED*S/3;
+                    p_k23_b4gems = P_DISTURBED*S/3;
                 end
                 % now do 2
                 gem_checker = [aliens1 aliens2_1 aliens2_2 aliens2_3;
