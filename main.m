@@ -22,7 +22,7 @@ clc;
 mapSize = [20, 10];
 % Set to true to generate a random map of size mapSize, else set to false 
 % to load the pre-exsisting example map
-generateRandomWorld = true;
+generateRandomWorld = false;
 
 % Plotting options
 global PLOT_POLICY PLOT_COST
@@ -74,7 +74,7 @@ if generateRandomWorld
 	[map] = GenerateWorld(mapSize(1), mapSize(2));
 else
     % We can load a pre-generated map.
-    load('exampleWorld_1.mat');
+    load('exampleWorld_3.mat');
 end
 MakePlots(map);
 
