@@ -146,7 +146,7 @@ if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
     % Question d)
-    [ J_opt, u_opt_ind ] = VI_sol(P, G);
+    [ J_opt, u_opt_ind ] = PI_sol(P, G);
     
     if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
         disp('[ERROR] the size of J and u must be K')

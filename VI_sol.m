@@ -42,7 +42,7 @@ function [ J_opt, u_opt_ind ] = VI_sol(P, G)
     V = inf(K,1);
     V_prime = zeros(K,1);
     u_opt_ind = NaN(K,1);
-    epsilon = 1e-12;
+    epsilon = 1e-6;
     while norm(V-V_prime, "inf") > epsilon % line 3, infinity norm is the maximum V-V_prime value
         V = V_prime; % line 4
         for state_i = 1:K % line 5, for all states V'(i) = min{Q(i,u) + sum[P(i,u,j)*V(j)]}
