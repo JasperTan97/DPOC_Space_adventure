@@ -37,7 +37,7 @@ function [ J_opt, u_opt_ind ] = VI_sol(P, G)
     global K M N L
     global TERMINAL_STATE_INDEX
 
-    % Do yo need to do something with the teminal state before solving the problem?
+    % Do yo need to do something with the terminal state before solving the problem?
     % since K states, we implement a value table
     V = inf(K,1);
     V_prime = zeros(K,1);
@@ -54,7 +54,7 @@ function [ J_opt, u_opt_ind ] = VI_sol(P, G)
                 % find Q(i,u) + sum[P(i,u,j)*V(j)]
                 state_js = find(P(state_i,:,action)); % look for all nonzero values of state j
                 expected_value = 0; % sum part
-                for state_j = 1:length(state_js) % for each index that are non zeroes
+                for state_j = state_js % for each index that are non zeroes
                     expected_value = expected_value + P(state_i, state_j, action) * V(state_j);
                 end
                 cost_per_action(action) = G(state_i, action) + expected_value;
@@ -71,7 +71,7 @@ function [ J_opt, u_opt_ind ] = VI_sol(P, G)
             % find Q(i,u) + sum[P(i,u,j)*V(j)]
             state_js = find(P(state_i,:,action)); % look for all nonzero values of state j
             expected_value = 0; % sum part
-            for state_j = 1:length(state_js) % for each index that are non zeroes
+            for state_j = state_js % for each index that are non zeroes
                 expected_value = expected_value + P(state_i, state_j, action) * J_opt(state_j);
             end
             cost_per_action(action) = G(state_i, action) + expected_value;

@@ -74,7 +74,7 @@ if generateRandomWorld
 	[map] = GenerateWorld(mapSize(1), mapSize(2));
 else
     % We can load a pre-generated map.
-    load('exampleWorld_3.mat');
+    load('exampleWorld_1.mat');
 end
 MakePlots(map);
 
@@ -104,13 +104,13 @@ L=length([SOUTH, NORTH, WEST, EAST, STAY]);
 %% Set the following to true as you progress with the files
 terminalStateIndexImplemented = true;
 transitionProbabilitiesImplemented = true;
-stageCostsImplemented = false;
-SolutionImplemented = false; 
+stageCostsImplemented = true;
+SolutionImplemented = true;
 
 %% Compute the terminal state index
 global TERMINAL_STATE_INDEX
 if terminalStateIndexImplemented
-    % TODO: Question a)
+    % Question a)
     TERMINAL_STATE_INDEX = ComputeTerminalStateIndex(stateSpace, map);
 end                  
 %% Compute transition probabilities
@@ -123,7 +123,7 @@ if transitionProbabilitiesImplemented
     % the entry P(i, j, l) representes the transition probability from state i
     % to state j if control input l is applied.
     
-    % TODO: Question b)
+    % Question b)
     P = ComputeTransitionProbabilities(stateSpace, map);
 end
 
@@ -136,7 +136,7 @@ if stageCostsImplemented
     % The stage cost matrix has the dimension (K x L), i.e. the entry G(i, l)
     % represents the cost if we are in state i and apply control input l.
     
-    % TODO: Question c)
+    % Question c)
     G = ComputeStageCosts(stateSpace, map, P);
 end
 
@@ -145,8 +145,8 @@ end
 if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
-    % TODO: Question d)
-    [ J_opt, u_opt_ind ] = Solution(P, G);
+    % Question d)
+    [ J_opt, u_opt_ind ] = VI_sol(P, G);
     
     if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
         disp('[ERROR] the size of J and u must be K')
