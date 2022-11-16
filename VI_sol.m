@@ -38,5 +38,42 @@ function [ J_opt, u_opt_ind ] = Solution(P, G)
     global TERMINAL_STATE_INDEX
 
     % Do yo need to do something with the teminal state before solving the problem?
-
+    % since K states, we implement a value table
+    V = inf(K);
+    V_prime = zeros(K);
+    u_opt_ind = NaN(K);
+    epsilon = 1e-8;
+    while norm(V-V_prime, "inf") > epsilon % line 3, infinity norm is the maximum V-V_prime value
+        V = V_prime; % line 4
+        for state_i = 1:K % line 5, for all states V'(i) = min{Q(i,u) + sum[P(i,u,j)*V(j)]}
+            cost_per_action = zeros(5);
+            for action = 1:L
+                % find Q(i,u) + sum[P(i,u,j)*V(j)]
+                state_js = find(P(state,:,action)); % look for all nonzero values of state j
+                summed_cost = 0; % sum part
+                for state_j = 1:length(state_js) % for each index that are non zeroes
+                    summed_cost = summed_cost + P(state_i, state_j, action) * V(state_j);
+                end
+                cost_per_action(action) = G(state_i, action) + summed_cost;
+            end
+            V_prime(state_i) = min(cost_per_action); % line 5, minimum section
+        end
+    end
+    % line 6 V_star = V
+    J_opt = V;
+    % line 7 mu_star = argmin V(i)
+    for state_i = 1:K
+        cost_per_action = zeros(5);
+        for action = 1:L
+            % find Q(i,u) + sum[P(i,u,j)*V(j)]
+            state_js = find(P(state,:,action)); % look for all nonzero values of state j
+            summed_cost = 0; % sum part
+            for state_j = 1:length(state_js) % for each index that are non zeroes
+                summed_cost = summed_cost + P(state_i, state_j, action) * J_opt(state_j);
+            end
+            cost_per_action(action) = G(state_i, action) + summed_cost;
+        end
+        [~, min_idx] = min(cost_per_action);
+        u_opt_ind(state_i) = min_idx;
+    end
 end
