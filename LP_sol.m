@@ -1,4 +1,4 @@
-function [ J_opt, u_opt_ind ] = Solution(P, G)
+function [ J_opt, u_opt_ind ] = LP_sol(P, G)
 %SOLUTION 
 %   Solve a stochastic shortest path problem by either Value Iteration,
 %   Policy Iteration, or Linear Programming.
@@ -38,5 +38,55 @@ function [ J_opt, u_opt_ind ] = Solution(P, G)
     global TERMINAL_STATE_INDEX
 
     % Do yo need to do something with the teminal state before solving the problem?
+    f = -1 * ones(K-1,1);
 
+    % remove terminal rows
+    P_old = P;
+    G_old = G;
+    P(TERMINAL_STATE_INDEX,:,:) = [];
+    P(:,TERMINAL_STATE_INDEX,:) = [];
+    G(TERMINAL_STATE_INDEX,:) = [];
+    
+    A_south = eye(K-1) - P(:,:,SOUTH); % K-1xK
+    A_north = eye(K-1) - P(:,:,NORTH);
+    A_east = eye(K-1) - P(:,:,EAST);
+    A_west = eye(K-1) - P(:,:,WEST);
+    A_stay = eye(K-1) - P(:,:,STAY);
+
+    A = [A_south; A_north; A_east; A_west; A_stay];
+
+    G(G == Inf) = 10000;
+
+    b_south = G(:, SOUTH);
+    b_north = G(:, NORTH);
+    b_east = G(:, EAST);
+    b_west = G(:, WEST);
+    b_stay = G(:, STAY);
+
+    b = [b_south; b_north; b_east; b_west; b_stay];
+
+    lb = zeros(K-1,1);
+    ub = [];
+
+    J_opt = linprog(f, A, b, [], [], lb, ub);
+    J_opt = [J_opt(1:TERMINAL_STATE_INDEX-1); 0; J_opt(TERMINAL_STATE_INDEX:end)];
+    u_opt_ind = NaN(K,1);
+
+    P = P_old;
+    G = G_old;
+
+    for state_i = 1:K
+        cost_per_action = zeros(5,1);
+        for action = 1:L
+            % find Q(i,u) + sum[P(i,u,j)*V(j)]
+            state_js = find(P(state_i,:,action)); % look for all nonzero values of state j
+            expected_value = 0; % sum part
+            for state_j = state_js % for each index that are non zeroes
+                expected_value = expected_value + P(state_i, state_j, action) * J_opt(state_j);
+            end
+            cost_per_action(action) = G(state_i, action) + expected_value;
+        end
+        [~, min_idx] = min(cost_per_action);
+        u_opt_ind(state_i) = min_idx;
+    end
 end
