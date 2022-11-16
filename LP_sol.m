@@ -38,26 +38,42 @@ function [ J_opt, u_opt_ind ] = LP_sol(P, G)
     global TERMINAL_STATE_INDEX
 
     % Do yo need to do something with the teminal state before solving the problem?
-    f = -1 * ones(K,1);
+    f = -1 * ones(K-1,1);
 
-    A_south = eye(K) - P(:,:,SOUTH);
-    A_north = eye(K) - P(:,:,NORTH);
-    A_east = eye(K) - P(:,:,EAST);
-    A_west = eye(K) - P(:,:,WEST);
-    A_stay = eye(K) - P(:,:,STAY);
+    % remove terminal rows
+    P_old = P;
+    G_old = G;
+    P(TERMINAL_STATE_INDEX,:,:) = [];
+    P(:,TERMINAL_STATE_INDEX,:) = [];
+    G(TERMINAL_STATE_INDEX,:) = [];
+    
+    A_south = eye(K-1) - P(:,:,SOUTH); % K-1xK
+    A_north = eye(K-1) - P(:,:,NORTH);
+    A_east = eye(K-1) - P(:,:,EAST);
+    A_west = eye(K-1) - P(:,:,WEST);
+    A_stay = eye(K-1) - P(:,:,STAY);
 
     A = [A_south; A_north; A_east; A_west; A_stay];
 
-    b_south = G(K, SOUTH);
-    b_north = G(K, NORTH);
-    b_east = G(K, EAST);
-    b_west = G(K, WEST);
-    b_stay = G(K, STAY);
+    G(G == Inf) = 10000;
+
+    b_south = G(:, SOUTH);
+    b_north = G(:, NORTH);
+    b_east = G(:, EAST);
+    b_west = G(:, WEST);
+    b_stay = G(:, STAY);
 
     b = [b_south; b_north; b_east; b_west; b_stay];
 
-    J_opt = linprog(f,A,b);
+    lb = zeros(K-1,1);
+    ub = [];
+
+    J_opt = linprog(f, A, b, [], [], lb, ub);
+    J_opt = [J_opt(1:TERMINAL_STATE_INDEX-1); 0; J_opt(TERMINAL_STATE_INDEX:end)];
     u_opt_ind = NaN(K,1);
+
+    P = P_old;
+    G = G_old;
 
     for state_i = 1:K
         cost_per_action = zeros(5,1);
