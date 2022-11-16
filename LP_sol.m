@@ -58,14 +58,14 @@ function [ J_opt, u_opt_ind ] = LP_sol(P, G)
 
     J_opt = linprog(f,A,b);
     u_opt_ind = NaN(K,1);
-    
+
     for state_i = 1:K
         cost_per_action = zeros(5,1);
         for action = 1:L
             % find Q(i,u) + sum[P(i,u,j)*V(j)]
             state_js = find(P(state_i,:,action)); % look for all nonzero values of state j
             expected_value = 0; % sum part
-            for state_j = 1:length(state_js) % for each index that are non zeroes
+            for state_j = state_js % for each index that are non zeroes
                 expected_value = expected_value + P(state_i, state_j, action) * J_opt(state_j);
             end
             cost_per_action(action) = G(state_i, action) + expected_value;
