@@ -74,7 +74,7 @@ if generateRandomWorld
 	[map] = GenerateWorld(mapSize(1), mapSize(2));
 else
     % We can load a pre-generated map.
-    load('exampleWorld_3.mat');
+    load('exampleWorld_1.mat');
 end
 MakePlots(map);
 
@@ -104,7 +104,7 @@ L=length([SOUTH, NORTH, WEST, EAST, STAY]);
 %% Set the following to true as you progress with the files
 terminalStateIndexImplemented = true;
 transitionProbabilitiesImplemented = true;
-stageCostsImplemented = false;
+stageCostsImplemented = true;
 SolutionImplemented = false; 
 
 %% Compute the terminal state index

@@ -15,9 +15,7 @@ end
 disp("First error startK has state:")
 stateSpace(startK(1),:)
 
-fprintf("Chosen action: %d\n", moveType)
+fprintf("Chosen action: %d\n", moveType(1))
 
-disp("Calculated cost: Gx")
-Gx(startK(1), moveType(1))
-disp("Answer cost: G")
-P(startK(1), moveType(1))
+fprintf("Calculated cost (Gx): %0.9f\n", Gx(startK(1), moveType(1)) )
+fprintf("Answer cost (G): %0.9f\n", G(startK(1), moveType(1)) )

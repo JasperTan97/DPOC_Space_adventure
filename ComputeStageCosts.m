@@ -38,55 +38,89 @@ function G = ComputeStageCosts( stateSpace, map, P )
 
     G = ones(K,L);  % by default all actions have a cost of 1.
 
+    % Get terminal state
+    G(TERMINAL_STATE_INDEX,:) = zeros(1,5);
+
     % Iterate over all states
     for k = 1:K
+        % Don't need to process further if we are at the terminal state
+        if k==TERMINAL_STATE_INDEX
+            continue
+        end
+
         m = stateSpace(k,1);    % 'x' value
         n = stateSpace(k,2);    % 'y' value
         phi = stateSpace(k,3);  % Carrying gems
         psi = stateSpace(k,4);  % Lower (1) or upper (0) world
 
         % find allowable control inputs
-        [admissible_inputs, next_m, next_n, next_phi, next_psi] = get_admissible_control_inputs(m,n,phi,psi);
+        [admissible_inputs, next_m, next_n] = get_admissible_control_inputs(m,n,psi,map);
 
         for input_idx = 1:5
             if admissible_inputs(input_idx)==false
                 % Not possible to apply this action
-                G(k,input_idx) = inf;
+                G(k,input_idx) = Inf;
                 continue;
             end
 
-            % r corresponds to the list of states that have nonzero probability
-            % of transition
-            [r,~,~] = ind2sub(size(P),find(P(k,:,input_idx)~=0));
-            k_next = ismember(stateSpace, [next_m(input_idx) next_n(input_idx) next_phi(input_idx) next_psi(input_idx)], 'rows');
+            % Compute probababilities of certain events happening
+            assert(next_m(input_idx)<=M, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
+            assert(next_n(input_idx)<=N, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
+            next_state = [next_m(input_idx) next_n(input_idx) phi psi];
+            [next_state, num_aliens_1] = eventsresolver(next_state, map);
 
-            for k_end=r
-                if k_next==k_end
-                    % We got where we intended. Continue (cost is 1)
-                else
-                    % We did not get what we intended. ???
+            % Calculate expected probability of aliens attacking
+            % Extra cost simply the number of aliens attacking at that spot!
+            G(k,input_idx) = G(k,input_idx) + N_a * num_aliens_1;
 
-                    % Disambiguate probabilities here.
+            % Calculate probability of being disturbed by radiation
+            [ num_aliens_2_1, num_aliens_2_2, num_aliens_2_3,...
+              crash2_1, crash2_2, crash2_3 ] = after_radiation(next_state, map);
 
-                    % -> Move more than 1 square away. => Disturbed, additional cost of 1
-                    % -> Move home. => Crashed, extra fuel of N_b
-                    %   => WITH THE EXCEPTION of deliberately moving home (covered above) 
-                    %      or joint probabilities of moving home AND ...
-                    % -> Alien attack.
-
-                    % Therefore it makes more sense to have probability calculation in full?
-                end
+            % Probability of being disturbed
+            if next_state(4)==UPPER
+                p_disturbed = P_DISTURBED/3;
+            else
+                p_disturbed = S*P_DISTURBED/3;
             end
+
+            % Resolve cost at disturbed areas
+
+            % If we crashed, then we add N_b+1 to the expectation. Else we just add 1
+            if crash2_1
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_b+1);
+            else
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(1);
+            end
+            % Also the expected number of aliens at the disturbed position
+            G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_a*num_aliens_2_1);
+
+            if crash2_2
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_b+1);
+            else
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(1);
+            end
+            % Also the expected number of aliens at the disturbed position
+            G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_a*num_aliens_2_2);
+
+            if crash2_3
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_b+1);
+            else
+                G(k,input_idx) = G(k,input_idx) + p_disturbed*(1);
+            end
+            % Also the expected number of aliens at the disturbed position
+            G(k,input_idx) = G(k,input_idx) + p_disturbed*(N_a*num_aliens_2_3);
         end
     end
 end
 
 
 %%%%% Auxilliary functions
-function [adm_inputs, next_m, next_n, next_phi, next_psi] = get_admissible_control_inputs(m,n,phi,psi)
+function [adm_inputs, next_m, next_n] = get_admissible_control_inputs(m,n,psi,map)
     % Given a current state (easting, northing, lower/upper) we return if actions 
     % [SOUTH NORTH WEST EAST STAY] are valid
     % Also returns a vector of where we will go.
+    global M N NORTH SOUTH EAST WEST OBSTACLE
 
     % Not sure if directions are valid, but stay is always valid.
     adm_inputs = [false false false false true];
@@ -114,33 +148,136 @@ function [adm_inputs, next_m, next_n, next_phi, next_psi] = get_admissible_contr
             adm_inputs(SOUTH) = true;
         end
     end
-
-    % ! Vectorize this if possible
-    % Flip the value of psi if we are in a portal.
-    next_psi = [psi psi psi psi psi];
-    for k=1:5
-        if map(next_m(k), next_n(k))==PORTAL
-            next_psi(k) = ~psi;
-        end
-    end
-
-    next_phi = [phi phi phi phi phi];
-    for k=1:5
-        if map(next_m(k), next_n(k))==MINE && next_psi(k)==LOWER
-            next_phi(k) = GEMS;
-        end
-    end
 end
 
 function vert_dir = north_or_south(m,n,psi)
     % Returns which direction of vertical movement (NORTH, SOUTH) is currently 
     % possible
+    global NORTH SOUTH
 
     vert_dir = mod( (m+n+psi), 2 );
     % It turns out that this is a neat way to express if we can go north or south
-    if vert_dir
+    if vert_dir==1
         vert_dir = NORTH;
     else
         vert_dir = SOUTH;
+    end
+end
+
+function [nextstate, alien_attacks] = eventsresolver(statex, map)
+    % Input: current state and map
+    % Output: next state as a helper for calculating state
+    % probabilities of losing gems, number of alien_attacks as a helper for
+    % calulating probabilities of losing gems too
+    global PORTAL LOWER
+    % in any world, we have to check for:
+    % 1) Portal == psi 0 -> 1. 
+    % 2) if we take the portal, check if aliens attack
+    % 3) Mine == psi 
+    nextstate = statex;
+    alien_attacks = 0;
+
+    % Resolve portal
+    if map(nextstate(1), nextstate(2)) == PORTAL
+        nextstate(4) = ~nextstate(4);   % a NOT operation suffices
+    end
+
+    % checking if aliens attack
+    if nextstate(4) == LOWER
+        alien_attacks = alienchecker(nextstate, map);
+        % we only care about the chance of losing gems
+        % when imputing probabilities, now we simply store
+        % the number of aliens encountered
+    end
+end
+
+function alienattack = alienchecker(statex, map)
+% looks around to find how many aliens can attack. 
+% Returns number of aliens ready to strike
+    global ALIEN M N NORTH
+    m = statex(1);
+    n = statex(2);
+    psi = statex(4);
+    alienattack = 0;
+
+    if map(m,n) == ALIEN
+        alienattack = alienattack + 1;
+    end
+    
+    if m > 1 % check if alien on the left
+        if map(m-1,n) == ALIEN
+            alienattack = alienattack + 1;
+        end
+    end
+
+    if m < M % alien on the right
+        if map(m+1,n) == ALIEN
+            alienattack = alienattack + 1;
+        end
+    end
+    
+    if north_or_south(m,n,psi)==NORTH
+        if n<N && map(m,n+1) == ALIEN
+            alienattack = alienattack + 1;
+        end
+    else
+        if n>1 && map(m,n-1) == ALIEN
+            alienattack = alienattack + 1;
+        end
+    end
+end
+
+function [num_aliens_2_1, num_aliens_2_2, num_aliens_2_3,...
+          crash2_1, crash2_2, crash2_3] ...
+          = after_radiation(statex, map)
+
+    global NORTH M N OBSTACLE
+
+    m = statex(1);
+    n = statex(2);
+    phi = statex(3);
+    psi = statex(4);
+
+    state2_1 = [m-1,n,phi,psi];
+    state2_2 = [m+1,n,phi,psi];
+
+    if north_or_south(m,n,psi)==NORTH
+        state2_3 = [m,n+1,phi,psi];
+    else
+        state2_3 = [m,n-1,phi,psi];
+    end
+
+    % now check if out of bounds, if it is, return to base.
+    % first we check if OOB 
+    function oob = outofboundschecker(statex)
+        m_oob = statex(1);
+        n_oob = statex(2);
+
+        oob = m_oob < 1 || m_oob > M || ... 
+              n_oob < 1 || n_oob > N || ...
+              map(m_oob,n_oob) == OBSTACLE;
+    end
+
+    num_aliens_2_1 = 0;
+    num_aliens_2_2 = 0;
+    num_aliens_2_3 = 0;
+    crash2_1 = false;
+    crash2_2 = false;
+    crash2_3 = false;
+
+    if outofboundschecker(state2_1)
+        crash2_1 = true;
+    else
+        [~, num_aliens_2_1] = eventsresolver(state2_1, map);
+    end
+    if outofboundschecker(state2_2)
+        crash2_2 = true;
+    else
+        [~, num_aliens_2_2] = eventsresolver(state2_2, map);
+    end
+    if outofboundschecker(state2_3)
+        crash2_3 = true;
+    else
+        [~, num_aliens_2_3] = eventsresolver(state2_3, map);
     end
 end
