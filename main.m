@@ -158,6 +158,7 @@ if SolutionImplemented
         [ J_opt_VI, u_opt_ind_VI ] = VI_sol(P, G);
     else
         disp("Invalid choice")
+        [ J_opt, u_opt_ind ] = Solution(P, G);
     end
 
     % Below code measures times
