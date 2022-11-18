@@ -23,6 +23,8 @@ mapSize = [20, 10];
 % Set to true to generate a random map of size mapSize, else set to false 
 % to load the pre-exsisting example map
 generateRandomWorld = true;
+predefined_map = 'exampleWorld_3.mat';
+sol_choice = "LP";
 
 % Plotting options
 global PLOT_POLICY PLOT_COST
@@ -74,7 +76,7 @@ if generateRandomWorld
 	[map] = GenerateWorld(mapSize(1), mapSize(2));
 else
     % We can load a pre-generated map.
-    load('exampleWorld_3.mat');
+    load(predefined_map);
 end
 MakePlots(map);
 
@@ -150,7 +152,13 @@ if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
     % Question d)
-    [ J_opt, u_opt_ind ] = LP_sol(P, G);
+    if sol_choice == "LP"
+        [ J_opt, u_opt_ind ] = LP_sol(P, G);
+    elseif sol_choice == "VI"
+        [ J_opt_VI, u_opt_ind_VI ] = VI_sol(P, G);
+    else
+        disp("Invalid choice")
+    end
 
     % Below code measures times
 %     [ J_opt_LP, u_opt_ind_LP ] = LP_sol(P, G);
