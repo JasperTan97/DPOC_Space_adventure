@@ -57,19 +57,20 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
     base_state = [base_x, base_y, EMPTY, UPPER];
 
     % iterate through all states to get transition probs for each
-    for k = 1:K
+    parfor (k = 1:K, 4)
         statecurrent = stateSpace(k,:);
         m = statecurrent(1);
         n = statecurrent(2);
         phi = statecurrent(3);
         psi = statecurrent(4);
-        
+        prob_k = zeros(K,L);
+
         % just walking either left, right or north/south
         stateleft = [m-1,n,phi,psi];
         stateright = [m+1,n,phi,psi];
         statesouth = [m,n-1,phi,psi];
         statenorth = [m,n+1,phi,psi];
-        
+
         % now, depending on terrain, is north or south possible
         northorsouthpossible = northorsouth(m,n,psi);
 
@@ -84,12 +85,12 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                 staying = true;
             end
 
-            if l == SOUTH 
+            if l == SOUTH
                 % going south, must be possible map wise, obstacle free, not off the map
                 state0 = statesouth;
                 if northorsouthpossible == "south" && statecurrent(2) > 1 && ...
                     map(state0(1), state0(2)) ~= OBSTACLE
-                    
+
                     motionpossible = true;
                 end
             end
@@ -128,17 +129,19 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                     aliens2_1, aliens2_2, aliens2_3] = after_radiation(state1, map, base_state);
             
             end
-    % for calculation of probabilities:
-    % 1) get position states (x,y,psi) by using p_disturbed/3 or with shielding
-    % by checking state1 psi value (and not state2)
-    % 2) get gem state by calculating probabilities based on number of
-    % alien attacks in state 2 (if gotgems2 is false) + number of alien
-    % attacks in state 1 (if gotgems1 is false). Use that as the
-    % exponent when using p_protected
-    % in summary, we will have p_ij, where i is current_state aka state_k
-    % and j can take either state1 or state 2_{1,2,3}
+
+            % for calculation of probabilities:
+            % 1) get position states (x,y,psi) by using p_disturbed/3 or with shielding
+            % by checking state1 psi value (and not state2)
+            % 2) get gem state by calculating probabilities based on number of
+            % alien attacks in state 2 (if gotgems2 is false) + number of alien
+            % attacks in state 1 (if gotgems1 is false). Use that as the
+            % exponent when using p_protected
+            % in summary, we will have p_ij, where i is current_state aka state_k
+            % and j can take either state1 or state 2_{1,2,3}
+
             if staying
-                P(k,k,l) = 1;
+                prob_k(k,l) = 1;
         
             elseif motionpossible
                 if state1(4) == UPPER
@@ -198,16 +201,7 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                     p_k23_wgems = 0;
                 end
 
-                % find indexes in statespace: worst case N*M*4 searches each
-                % TODO make this faster by not searching, since we already know where we are (kinda)
-%                 k1_wgems = ismember(stateSpace,[state1(1),state1(2),GEMS, state1(4)], "rows");
-%                 k1_wogems = ismember(stateSpace,[state1(1),state1(2),EMPTY, state1(4)], "rows");
-%                 k21_wgems = ismember(stateSpace,[state2_1(1),state2_1(2),GEMS, state2_1(4)], "rows");
-%                 k21_wogems = ismember(stateSpace,[state2_1(1),state2_1(2),EMPTY, state2_1(4)], "rows");
-%                 k22_wgems = ismember(stateSpace,[state2_2(1),state2_2(2),GEMS, state2_2(4)], "rows");
-%                 k22_wogems = ismember(stateSpace,[state2_2(1),state2_2(2),EMPTY, state2_2(4)], "rows");
-%                 k23_wgems = ismember(stateSpace,[state2_3(1),state2_3(2),GEMS, state2_3(4)], "rows");
-%                 k23_wogems = ismember(stateSpace,[state2_3(1),state2_3(2),EMPTY, state2_3(4)], "rows");
+                % find indexes in statespace
                 k1_wgems = state_to_k(state1(1),state1(2),GEMS,state1(4), state_to_k_map);
                 k1_wogems = state_to_k(state1(1),state1(2),EMPTY,state1(4), state_to_k_map);
                 k21_wgems = state_to_k(state2_1(1),state2_1(2),GEMS,state2_1(4), state_to_k_map);
@@ -218,16 +212,18 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                 k23_wogems = state_to_k(state2_3(1),state2_3(2),EMPTY,state2_3(4), state_to_k_map);
 
                 % update transition probabilities
-                P(k, k1_wgems, l) = P(k, k1_wgems, l) + p_k1_wgems;
-                P(k, k1_wogems, l) = P(k, k1_wogems, l) + p_k1_wogems;
-                P(k, k21_wgems, l) = P(k, k21_wgems, l) + p_k21_wgems;
-                P(k, k21_wogems, l) = P(k, k21_wogems, l) + p_k21_wogems;
-                P(k, k22_wgems, l) = P(k, k22_wgems, l) + p_k22_wgems;
-                P(k, k22_wogems, l) = P(k, k22_wogems, l) + p_k22_wogems;
-                P(k, k23_wgems, l) = P(k, k23_wgems, l) + p_k23_wgems;
-                P(k, k23_wogems, l) = P(k, k23_wogems, l) + p_k23_wogems;
+                prob_k( k1_wgems, l) = prob_k( k1_wgems, l) + p_k1_wgems;
+                prob_k( k1_wogems, l) = prob_k( k1_wogems, l) + p_k1_wogems;
+                prob_k( k21_wgems, l) = prob_k( k21_wgems, l) + p_k21_wgems;
+                prob_k( k21_wogems, l) = prob_k( k21_wogems, l) + p_k21_wogems;
+                prob_k( k22_wgems, l) = prob_k( k22_wgems, l) + p_k22_wgems;
+                prob_k( k22_wogems, l) = prob_k( k22_wogems, l) + p_k22_wogems;
+                prob_k( k23_wgems, l) = prob_k( k23_wgems, l) + p_k23_wgems;
+                prob_k( k23_wogems, l) = prob_k( k23_wogems, l) + p_k23_wogems;
             end
         end
+
+        P(k,:,:) = prob_k;
     end
 end
 
