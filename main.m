@@ -171,6 +171,7 @@ if SolutionImplemented
 %         fprintf("VI chose: %d \n", u_opt_ind_VI(list_of_diff(err_idx)))
 %         fprintf("LP chose: %d \n", u_opt_ind_LP(list_of_diff(err_idx)))
 %     end
+
     
 %     if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
 %         disp('[ERROR] the size of J and u must be K')

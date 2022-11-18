@@ -1,4 +1,4 @@
-function [ J_opt, u_opt_ind ] = Solution(P, G)
+function [ J_opt, u_opt_ind ] = PI_sol(P, G)
 %SOLUTION 
 %   Solve a stochastic shortest path problem by either Value Iteration,
 %   Policy Iteration, or Linear Programming.
@@ -37,6 +37,96 @@ function [ J_opt, u_opt_ind ] = Solution(P, G)
     global K M N L
     global TERMINAL_STATE_INDEX
 
-    % Do yo need to do something with the teminal state before solving the problem?
+    % Do you need to do something with the terminal state before solving the problem?
 
+    P_prev = P;
+    G_prev = G;
+    % Get rid of terminal state row/cols
+    % P(TERMINAL_STATE_INDEX,:,:) = [];
+    % P(:,TERMINAL_STATE_INDEX,:) = [];
+    % G(TERMINAL_STATE_INDEX,:) = [];
+
+    P = zeros(K-1, K-1, L);
+    P(1:TERMINAL_STATE_INDEX-1,1:TERMINAL_STATE_INDEX-1,:) = P_prev(1:TERMINAL_STATE_INDEX-1,1:TERMINAL_STATE_INDEX-1,:);   % Quadrant 1
+    P(1:TERMINAL_STATE_INDEX-1,TERMINAL_STATE_INDEX:end,:) = P_prev(1:TERMINAL_STATE_INDEX-1,TERMINAL_STATE_INDEX+1:end,:);
+    P(TERMINAL_STATE_INDEX:end,TERMINAL_STATE_INDEX:end,:) = P_prev(TERMINAL_STATE_INDEX+1:end,TERMINAL_STATE_INDEX+1:end,:);
+    P(TERMINAL_STATE_INDEX:end,1:TERMINAL_STATE_INDEX-1,:) = P_prev(TERMINAL_STATE_INDEX+1:end,1:TERMINAL_STATE_INDEX-1,:);
+
+    G = [G_prev(1:TERMINAL_STATE_INDEX-1,:); G_prev(TERMINAL_STATE_INDEX+1:end,:)];
+
+    % Initialise a proper policy
+    mu = ones(K-1,1,'int8');
+
+    for k=1:(K-1)
+        % A proper policy is if there exists an integer m s.t. P(x_m=0 | x_0 = i) > 0 for all i in S.
+        % i.e. for all states in S, there exists a chance to reach the termination state.
+
+        % Mu contains valid actions if the sum of probabilities to get elsewhere is > 1.
+        if sum(P(k,:,EAST)) > 0.99
+            mu(k) = EAST;
+        elseif sum(P(k,:,WEST)) > 0.99
+            mu(k) = WEST;
+        elseif sum(P(k,:,NORTH)) > 0.99
+            mu(k) = NORTH;
+        elseif sum(P(k,:,SOUTH)) > 0.99
+            mu(k) = SOUTH;
+        else
+            assert(false, "Unable to find valid action for state %d", k)
+        end
+    end
+
+    while 1
+        mu_prev = [mu(1:TERMINAL_STATE_INDEX-1); STAY; mu(TERMINAL_STATE_INDEX:end)];
+
+        % Obtain J_mu by solving J_mu(i)=Q(i,mu(i)) + sum( P(i,mu(i)j)*J_,u(j)) - Line 4
+        trans_probs = zeros(K-1,K-1);   % 'P' matrix
+        policy_cost = zeros(K-1,1);     % 'G' matrix
+    
+        for k_it=1:(K-1)
+            trans_probs(k_it,:) = P(k_it,:,mu(k_it));   % Select the appropriate transition prob
+            policy_cost(k_it) = G(k_it, mu(k_it));
+        end
+
+        % J=G+PJ -> J=inv(I-P)*G
+%         det(eye(K-1)-trans_probs)
+%         J_mu = (eye(K-1)-trans_probs) \ policy_cost;
+        J_mu = linsolve(eye(K-1)-trans_probs, policy_cost);
+
+        assert( size(J_mu,1)==K-1, "J_mu has size (%d,%d) instead of (K-1,1)", size(J_mu,1), size(J_mu,2) )
+        assert( size(J_mu,2)==1, "J_mu has size (%d,%d) instead of (K-1,1)", size(J_mu,1), size(J_mu,2) )
+
+        % Line 5 - Find the input that minimises the policy
+        mu_prime = zeros(K,1);
+        for k_it=1:(K-1)
+            min_val = Inf;
+            min_l = 0;
+
+            for l_it=1:L
+                sum_over_j = sum( P(k_it,:,l_it).*J_mu(:), 'all' );
+                val = G(k_it, l_it) + sum_over_j;
+                if val < min_val
+                    min_val = val;
+                    min_l = l_it;
+                end
+            end
+            assert(min_l~=0, "Attempted to write an invalid action to mu_prime");
+
+            % Revert to correct indexing
+            mu_prime(k_it) = min_l;
+        end
+
+        % Insert STAY as a policy at TERMINAL_STATE
+        mu_prime(TERMINAL_STATE_INDEX:end) = [STAY; mu_prime(TERMINAL_STATE_INDEX:end-1)];
+        
+        % Line 6 - Check if mu_prime = mu (PI break conditinon)
+        if isequal(mu_prev, mu_prime)
+            % Correctify J_opt before returning it
+            % Return relevant values
+            J_opt = [J_mu(1:TERMINAL_STATE_INDEX-1); 0; J_mu(TERMINAL_STATE_INDEX:end)];       
+            u_opt_ind = mu_prev;
+            break
+        else
+            mu = mu_prime;
+        end
+    end
 end
