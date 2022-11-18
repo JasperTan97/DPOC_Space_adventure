@@ -150,7 +150,7 @@ if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
     % Question d)
-    [ J_opt, u_opt_ind ] = LP_sol(P, G);
+    [ J_opt, u_opt_ind ] = Solution(P, G);
 
     % Below code measures times
 %     [ J_opt_LP, u_opt_ind_LP ] = LP_sol(P, G);
