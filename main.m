@@ -22,7 +22,7 @@ clc;
 mapSize = [20, 10];
 % Set to true to generate a random map of size mapSize, else set to false 
 % to load the pre-exsisting example map
-generateRandomWorld = false;
+generateRandomWorld = true;
 
 % Plotting options
 global PLOT_POLICY PLOT_COST
@@ -125,8 +125,8 @@ if transitionProbabilitiesImplemented
     
     % Question b)
     P = ComputeTransitionProbabilities(stateSpace, map);
-    f_CTP = @() ComputeTransitionProbabilities(stateSpace, map); % handle to function
-    timeit(f_CTP)
+%     f_CTP = @() ComputeTransitionProbabilities(stateSpace, map); % handle to function
+%     timeit(f_CTP)
 end
 
 %% Compute stage costs
@@ -150,18 +150,19 @@ if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
     % Question d)
-%     [ J_opt, u_opt_ind ] = LP_sol(P, G);
+    [ J_opt, u_opt_ind ] = LP_sol(P, G);
 
+    % Below code measures times
 %     [ J_opt_LP, u_opt_ind_LP ] = LP_sol(P, G);
 %     [ J_opt_VI, u_opt_ind_VI ] = VI_sol(P, G);
-
+% 
 %       f_LP = @() LP_sol(P,G);
 %       f_VI = @() VI_sol(P,G);
 %       disp("LP");
 %       timeit(f_LP)
 %       disp("VI")
 %       timeit(f_VI)
-
+% 
 %     list_of_diff = find( abs(u_opt_ind_VI - u_opt_ind_LP) > 1e-10 );
 %     fprintf("Number of errors for between VI and LP: %d\n", size(list_of_diff,1) )
 % 
@@ -173,13 +174,13 @@ if SolutionImplemented
 %     end
 
     
-%     if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
-%         disp('[ERROR] the size of J and u must be K')
-%     else
-%         % Plot results
-%         disp('Plot results');
-%         MakePlots(map, stateSpace, J_opt, u_opt_ind, 'Solution');
-%     end
+    if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
+        disp('[ERROR] the size of J and u must be K')
+    else
+        % Plot results
+        disp('Plot results');
+        MakePlots(map, stateSpace, J_opt, u_opt_ind, 'Solution');
+    end
 end
 
 %% Terminated
