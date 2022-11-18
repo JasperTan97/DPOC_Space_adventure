@@ -31,6 +31,14 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
     global K M N L
     global TERMINAL_STATE_INDEX
     
+    % Compute mapping from one state to another
+    keys = zeros(1,K);
+    for k=1:K
+        state = stateSpace(k,:);
+        keys(k) = state(1)*N*16 + state(2)*8 + state(3)*4 + state(4);
+    end
+    state_to_k_map = containers.Map(keys, 1:K);
+
     % set P to all zeroes, because most probabilities are zero since far
     % away states are unreachable directly
     P = zeros(K,K,L);
@@ -192,14 +200,22 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
 
                 % find indexes in statespace: worst case N*M*4 searches each
                 % TODO make this faster by not searching, since we already know where we are (kinda)
-                k1_wgems = ismember(stateSpace,[state1(1),state1(2),GEMS, state1(4)], "rows");
-                k1_wogems = ismember(stateSpace,[state1(1),state1(2),EMPTY, state1(4)], "rows");
-                k21_wgems = ismember(stateSpace,[state2_1(1),state2_1(2),GEMS, state2_1(4)], "rows");
-                k21_wogems = ismember(stateSpace,[state2_1(1),state2_1(2),EMPTY, state2_1(4)], "rows");
-                k22_wgems = ismember(stateSpace,[state2_2(1),state2_2(2),GEMS, state2_2(4)], "rows");
-                k22_wogems = ismember(stateSpace,[state2_2(1),state2_2(2),EMPTY, state2_2(4)], "rows");
-                k23_wgems = ismember(stateSpace,[state2_3(1),state2_3(2),GEMS, state2_3(4)], "rows");
-                k23_wogems = ismember(stateSpace,[state2_3(1),state2_3(2),EMPTY, state2_3(4)], "rows");
+%                 k1_wgems = ismember(stateSpace,[state1(1),state1(2),GEMS, state1(4)], "rows");
+%                 k1_wogems = ismember(stateSpace,[state1(1),state1(2),EMPTY, state1(4)], "rows");
+%                 k21_wgems = ismember(stateSpace,[state2_1(1),state2_1(2),GEMS, state2_1(4)], "rows");
+%                 k21_wogems = ismember(stateSpace,[state2_1(1),state2_1(2),EMPTY, state2_1(4)], "rows");
+%                 k22_wgems = ismember(stateSpace,[state2_2(1),state2_2(2),GEMS, state2_2(4)], "rows");
+%                 k22_wogems = ismember(stateSpace,[state2_2(1),state2_2(2),EMPTY, state2_2(4)], "rows");
+%                 k23_wgems = ismember(stateSpace,[state2_3(1),state2_3(2),GEMS, state2_3(4)], "rows");
+%                 k23_wogems = ismember(stateSpace,[state2_3(1),state2_3(2),EMPTY, state2_3(4)], "rows");
+                k1_wgems = state_to_k(state1(1),state1(2),GEMS,state1(4), state_to_k_map);
+                k1_wogems = state_to_k(state1(1),state1(2),EMPTY,state1(4), state_to_k_map);
+                k21_wgems = state_to_k(state2_1(1),state2_1(2),GEMS,state2_1(4), state_to_k_map);
+                k21_wogems = state_to_k(state2_1(1),state2_1(2),EMPTY,state2_1(4), state_to_k_map);
+                k22_wgems = state_to_k(state2_2(1),state2_2(2),GEMS,state2_2(4), state_to_k_map);
+                k22_wogems = state_to_k(state2_2(1),state2_2(2),EMPTY,state2_2(4), state_to_k_map);
+                k23_wgems = state_to_k(state2_3(1),state2_3(2),GEMS,state2_3(4), state_to_k_map);
+                k23_wogems = state_to_k(state2_3(1),state2_3(2),EMPTY,state2_3(4), state_to_k_map);
 
                 % update transition probabilities
                 P(k, k1_wgems, l) = P(k, k1_wgems, l) + p_k1_wgems;
@@ -352,4 +368,10 @@ function northorsouthpossible = northorsouth(m,n,psi)
             northorsouthpossible = "south";
         end
     end
+end
+
+function k_idx = state_to_k(m,n,phi,psi,map)
+    global N
+    map_idx = m*N*16 + n*8 + phi*4 + psi;
+    k_idx = map(map_idx);
 end
