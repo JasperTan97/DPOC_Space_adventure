@@ -74,7 +74,7 @@ if generateRandomWorld
 	[map] = GenerateWorld(mapSize(1), mapSize(2));
 else
     % We can load a pre-generated map.
-    load('exampleWorld_1.mat');
+    load('exampleWorld_3.mat');
 end
 MakePlots(map);
 
@@ -125,6 +125,8 @@ if transitionProbabilitiesImplemented
     
     % Question b)
     P = ComputeTransitionProbabilities(stateSpace, map);
+    f_CTP = @() ComputeTransitionProbabilities(stateSpace, map); % handle to function
+    timeit(f_CTP)
 end
 
 %% Compute stage costs
@@ -138,6 +140,8 @@ if stageCostsImplemented
     
     % Question c)
     G = ComputeStageCosts(stateSpace, map, P);
+%     f_CSC = @() ComputeStageCosts(stateSpace, map, P);
+%     timeit(f_CSC)
 end
 
 %% Solve stochastic shortest path problem
@@ -146,15 +150,35 @@ if SolutionImplemented
     disp('Solve stochastic shortest path problem');
     
     % Question d)
-    [ J_opt, u_opt_ind ] = VI_sol(P, G);
+%     [ J_opt, u_opt_ind ] = LP_sol(P, G);
+
+%     [ J_opt_LP, u_opt_ind_LP ] = LP_sol(P, G);
+%     [ J_opt_VI, u_opt_ind_VI ] = VI_sol(P, G);
+
+%       f_LP = @() LP_sol(P,G);
+%       f_VI = @() VI_sol(P,G);
+%       disp("LP");
+%       timeit(f_LP)
+%       disp("VI")
+%       timeit(f_VI)
+
+%     list_of_diff = find( abs(u_opt_ind_VI - u_opt_ind_LP) > 1e-10 );
+%     fprintf("Number of errors for between VI and LP: %d\n", size(list_of_diff,1) )
+% 
+%     for err_idx = 1: size(list_of_diff)
+%         fprintf("State: \n")
+%         stateSpace(list_of_diff(err_idx),:)
+%         fprintf("VI chose: %d \n", u_opt_ind_VI(list_of_diff(err_idx)))
+%         fprintf("LP chose: %d \n", u_opt_ind_LP(list_of_diff(err_idx)))
+%     end
     
-    if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
-        disp('[ERROR] the size of J and u must be K')
-    else
-        % Plot results
-        disp('Plot results');
-        MakePlots(map, stateSpace, J_opt, u_opt_ind, 'Solution');
-    end
+%     if size(J_opt,1)~=K || size(u_opt_ind,1)~=K
+%         disp('[ERROR] the size of J and u must be K')
+%     else
+%         % Plot results
+%         disp('Plot results');
+%         MakePlots(map, stateSpace, J_opt, u_opt_ind, 'Solution');
+%     end
 end
 
 %% Terminated
