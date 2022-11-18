@@ -64,8 +64,8 @@ function G = ComputeStageCosts( stateSpace, map, P )
             end
 
             % Compute probababilities of certain events happening
-            assert(next_m(input_idx)<=M, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
-            assert(next_n(input_idx)<=N, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
+            % assert(next_m(input_idx)<=M, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
+            % assert(next_n(input_idx)<=N, "Error state (%d,%d)", next_m(input_idx), next_n(input_idx))
             next_state = [next_m(input_idx) next_n(input_idx) phi psi];
             [next_state, num_aliens_1] = eventsresolver(next_state, map);
 
