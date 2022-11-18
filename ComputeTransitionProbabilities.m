@@ -57,13 +57,12 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
     base_state = [base_x, base_y, EMPTY, UPPER];
 
     % iterate through all states to get transition probs for each
-    parfor (k = 1:K, 4)
+    for k = 1:K
         statecurrent = stateSpace(k,:);
         m = statecurrent(1);
         n = statecurrent(2);
         phi = statecurrent(3);
         psi = statecurrent(4);
-        prob_k = zeros(K,L);
 
         % just walking either left, right or north/south
         stateleft = [m-1,n,phi,psi];
@@ -141,7 +140,7 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
             % and j can take either state1 or state 2_{1,2,3}
 
             if staying
-                prob_k(k,l) = 1;
+                P(k,k,l) = 1;
         
             elseif motionpossible
                 if state1(4) == UPPER
@@ -212,18 +211,16 @@ function P = ComputeTransitionProbabilities(stateSpace, map)
                 k23_wogems = state_to_k(state2_3(1),state2_3(2),EMPTY,state2_3(4), state_to_k_map);
 
                 % update transition probabilities
-                prob_k( k1_wgems, l) = prob_k( k1_wgems, l) + p_k1_wgems;
-                prob_k( k1_wogems, l) = prob_k( k1_wogems, l) + p_k1_wogems;
-                prob_k( k21_wgems, l) = prob_k( k21_wgems, l) + p_k21_wgems;
-                prob_k( k21_wogems, l) = prob_k( k21_wogems, l) + p_k21_wogems;
-                prob_k( k22_wgems, l) = prob_k( k22_wgems, l) + p_k22_wgems;
-                prob_k( k22_wogems, l) = prob_k( k22_wogems, l) + p_k22_wogems;
-                prob_k( k23_wgems, l) = prob_k( k23_wgems, l) + p_k23_wgems;
-                prob_k( k23_wogems, l) = prob_k( k23_wogems, l) + p_k23_wogems;
+                P(k, k1_wgems, l) = P(k, k1_wgems, l) + p_k1_wgems;
+                P(k, k1_wogems, l) = P(k, k1_wogems, l) + p_k1_wogems;
+                P(k, k21_wgems, l) = P(k, k21_wgems, l) + p_k21_wgems;
+                P(k, k21_wogems, l) = P(k, k21_wogems, l) + p_k21_wogems;
+                P(k, k22_wgems, l) = P(k, k22_wgems, l) + p_k22_wgems;
+                P(k, k22_wogems, l) = P(k, k22_wogems, l) + p_k22_wogems;
+                P(k, k23_wgems, l) = P(k, k23_wgems, l) + p_k23_wgems;
+                P(k, k23_wogems, l) = P(k, k23_wogems, l) + p_k23_wogems;
             end
         end
-
-        P(k,:,:) = prob_k;
     end
 end
 
